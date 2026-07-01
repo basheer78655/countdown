@@ -1,5 +1,6 @@
 # Binary
 countdown
+countdownclilinux
 
 # Go build artifacts
 *.exe

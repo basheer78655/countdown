@@ -1,11 +1,12 @@
-project_name: countdown
+project_name: countdownclilinux
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - env:
+  - binary: countdownclilinux
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -24,6 +25,30 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+
+brews:
+  - name: countdownclilinux
+    repository:
+      owner: basheer78655
+      name: homebrew-countdownclilinux
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    homepage: "https://github.com/basheer78655/countdown"
+    description: "Terminal countdown timer with confetti celebration — for Linux"
+    license: "MIT"
+    install: |
+      bin.install "countdownclilinux"
+
+nfpms:
+  - id: countdownclilinux
+    package_name: countdownclilinux
+    vendor: basheer78655
+    homepage: https://github.com/basheer78655/countdown
+    maintainer: Shaik Basheer <basheer78655@github.com>
+    description: Terminal countdown timer with confetti celebration
+    license: MIT
+    formats:
+      - deb
+      - rpm
 
 checksum:
   name_template: 'checksums.txt'

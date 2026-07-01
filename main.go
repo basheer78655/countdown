@@ -13,12 +13,13 @@ import (
 
 const (
 	usage = `
- countdown [-up] [-say] [-title text] <duration>
+ countdownclilinux [-up] [-say] [-noconfetti] [-title text] <duration>
 
  Usage
-  countdown 25s
-  countdown -title "Coffee Break" 14:15
-  countdown 02:15PM
+  countdownclilinux 25s
+  countdownclilinux -title "Coffee Break" 14:15
+  countdownclilinux 02:15PM
+  countdownclilinux -noconfetti 10s
 
  Flags
 `
@@ -38,6 +39,7 @@ var (
 func main() {
 	countUp := flag.Bool("up", false, "count up from zero")
 	sayTheTime := flag.Bool("say", false, "announce the time left")
+	noConfetti := flag.Bool("noconfetti", false, "disable confetti animation on completion")
 	title := flag.String("title", "", "display title below the countdown")
 	flag.Parse()
 
@@ -68,7 +70,7 @@ func main() {
 			queues <- termbox.PollEvent()
 		}
 	}()
-	countdown(timeLeft, *countUp, *sayTheTime, *title)
+	countdown(timeLeft, *countUp, *sayTheTime, *title, !*noConfetti)
 }
 
 func start(d time.Duration) {
@@ -88,7 +90,7 @@ func durationToDraw(timeLeft, totalDuration time.Duration, countUp bool) time.Du
 	return timeLeft
 }
 
-func countdown(totalDuration time.Duration, countUp bool, sayTheTime bool, title string) {
+func countdown(totalDuration time.Duration, countUp bool, sayTheTime bool, title string, showConfetti bool) {
 	timeLeft := totalDuration
 	var exitCode int
 	isPaused = false
@@ -139,6 +141,11 @@ loop:
 		case <-timer.C:
 			break loop
 		}
+	}
+
+	// Play confetti celebration if countdown completed normally
+	if exitCode == 0 && showConfetti {
+		playConfetti(w, h)
 	}
 
 	termbox.Close()
