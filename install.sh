@@ -45,12 +45,20 @@ esac
 
 echo -e "${YELLOW}Detected:${NC} ${OS}/${ARCH}"
 
-# Get latest release tag
+# Get latest release tag using GitHub API redirect
 echo -e "${YELLOW}Fetching latest release...${NC}"
-LATEST_TAG=$(curl -sSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+
+# Method 1: Try the redirect URL (most reliable, no JSON parsing needed)
+LATEST_TAG=$(curl -sSL -o /dev/null -w '%{url_effective}' "https://github.com/${REPO}/releases/latest" 2>/dev/null | grep -oE '[^/]+$')
+
+# Method 2: Fallback to API with grep
+if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "latest" ]; then
+    LATEST_TAG=$(curl -sSL "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null | grep -m1 '"tag_name"' | cut -d'"' -f4)
+fi
 
 if [ -z "$LATEST_TAG" ]; then
-    echo -e "${RED}Error: Could not fetch latest release${NC}"
+    echo -e "${RED}Error: Could not fetch latest release.${NC}"
+    echo -e "${RED}Make sure releases exist at: https://github.com/${REPO}/releases${NC}"
     exit 1
 fi
 
@@ -65,7 +73,13 @@ TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
 
 echo -e "${YELLOW}Downloading ${ARCHIVE_NAME}...${NC}"
-curl -sSL "$DOWNLOAD_URL" -o "${TEMP_DIR}/${ARCHIVE_NAME}"
+HTTP_CODE=$(curl -sSL -w '%{http_code}' "$DOWNLOAD_URL" -o "${TEMP_DIR}/${ARCHIVE_NAME}")
+
+if [ "$HTTP_CODE" != "200" ]; then
+    echo -e "${RED}Error: Download failed (HTTP ${HTTP_CODE})${NC}"
+    echo -e "${RED}URL: ${DOWNLOAD_URL}${NC}"
+    exit 1
+fi
 
 echo -e "${YELLOW}Extracting...${NC}"
 tar -xzf "${TEMP_DIR}/${ARCHIVE_NAME}" -C "$TEMP_DIR"
